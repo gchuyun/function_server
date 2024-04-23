@@ -1,0 +1,102 @@
+### 获取工具函数列表
+GET http://127.0.0.1:8000/tools
+
+### 调用工具函数
+POST http://127.0.0.1:8000/toolcalls
+
+[
+  {
+    "id": "call_0000000",
+    "function": {
+      "arguments": "\"{\\\"input\\\":\\\"Jacky Cheung concert schedule 2024\\\"}\"",
+      "name": "web_search"
+    },
+    "type": "function"
+  },
+  {
+    "id": "call_11111111",
+    "function": {
+      "arguments": "\"{\\\"input\\\":\\\"Jacky Cheung concert schedule 2024\\\"}\"",
+      "name": "google_search"
+    },
+    "type": "function"
+  }
+]
+
+### 不伪装FunctionCalling，FAKE_ALL_MODEL = False 且 NO_FAKE_MODELS 列表包含 gpt-3.5-turbo
+curl http://127.0.0.1:8000/http://new-api:10008/v1/chat/completions \
+-H "Content-Type: application/json" \
+-H "Authorization: Bearer sk-BVICesGCofpxwTs3C28390B0Fa44483286132fCb4fFf20F1" \
+-d '{
+  "model": "gpt-3.5-turbo",
+  "messages": [
+    {
+      "role": "user",
+      "content": "张学友演唱会什么时候开?"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "web_search",
+        "description": "a search engine. useful for when you need to answer questions about current events. input should be a search query.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "tool_choice": "auto"
+}'
+
+### 通过模型名前面加“xyz|”前缀规避 NO_FAKE_MODELS
+curl http://127.0.0.1:8000/http://new-api:10008/v1/chat/completions \
+-H "Content-Type: application/json" \
+-H "Authorization: Bearer sk-BVICesGCofpxwTs3C28390B0Fa44483286132fCb4fFf20F1" \
+-d '{
+  "model": "no|gpt-3.5-turbo",
+  "messages": [
+    {
+      "role": "user",
+      "content": "张学友演唱会什么时候开?"
+    }
+  ]
+}'
+
+### google_search不是本服务上的工具函数，将交给下游执行
+curl http://127.0.0.1:8000/http://new-api:10008/v1/chat/completions \
+-H "Content-Type: application/json" \
+-H "Authorization: Bearer sk-BVICesGCofpxwTs3C28390B0Fa44483286132fCb4fFf20F1" \
+-d '{
+  "model": "no-tool|gpt-3.5-turbo",
+  "messages": [
+    {
+      "role": "user",
+      "content": "张学友演唱会什么时候开?"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "google_search",
+        "description": "a search engine. useful for when you need to answer questions about current events. input should be a search query.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "tool_choice": "auto"
+}'
